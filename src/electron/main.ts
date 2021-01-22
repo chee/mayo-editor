@@ -1,9 +1,35 @@
-import {app, BrowserWindow} from "electron"
+import {app, BrowserWindow, shell} from "electron"
+import contextMenu from "electron-context-menu"
 declare const MAIN_WINDOW_WEBPACK_ENTRY: any
 
 if (require("electron-squirrel-startup")) {
 	app.quit()
 }
+
+// TODO add emph, strong, link etc etc
+contextMenu({
+	prepend: (defaultActions, params, browserWindow) => [
+		// {
+		// 	label: "Rainbow",
+		// 	// Only show it when right-clicking images
+		// 	visible: params.mediaType === "image",
+		// },
+		{
+			label: "Search DuckDuckGo for “{selection}”",
+			// Only show it when right-clicking text
+			visible: params.selectionText.trim().length > 0,
+			click: () => {
+				shell.openExternal(
+					`https://duckduckgo.com/?q=${encodeURIComponent(
+						params.selectionText
+					)}`
+				)
+			},
+		},
+	],
+	showSearchWithGoogle: false,
+	showSaveImage: true,
+})
 
 const createWindow = (): void => {
 	const mainWindow = new BrowserWindow({
@@ -11,6 +37,7 @@ const createWindow = (): void => {
 		width: 800,
 		webPreferences: {
 			nodeIntegration: true,
+			spellcheck: true,
 		},
 	})
 

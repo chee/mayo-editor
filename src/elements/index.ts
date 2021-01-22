@@ -1,5 +1,3 @@
-import {MayoParentElement} from "./markdown/mayo-element"
-
 import MayoBreakElement from "./markdown/mayo-break"
 import MayoCodeElement from "./markdown/mayo-code"
 import MayoInlineCodeElement from "./markdown/mayo-inline-code"
@@ -21,6 +19,8 @@ import MayoTableElement from "./markdown/mayo-table"
 import MayoTextElement from "./markdown/mayo-text"
 import MayoTomlElement from "./markdown/mayo-toml"
 import MayoYamlElement from "./markdown/mayo-yaml"
+
+import MayoNodeElement from "./mayo-node"
 
 import MayoKillerElement from "./mayo-killer"
 
@@ -62,7 +62,7 @@ export type MayoContentElement =
 	| MayoPhrasingContentElement
 
 export type {
-	MayoDocumentElement,
+	MayoDocumentElement as MayoDocumentElement,
 	MayoKillerElement,
 	MayoSidebarElement,
 	MayoSidebarFileElement,
@@ -91,6 +91,7 @@ export type {
 }
 
 export default [
+	MayoNodeElement,
 	MayoAppElement,
 	MayoDocumentElement,
 	MayoSidebarElement,
@@ -118,47 +119,3 @@ export default [
 	MayoTomlElement,
 	MayoYamlElement,
 ]
-
-export interface BeforeInputEvent extends InputEvent {
-	getTargetRanges(): StaticRange[]
-	dataTransfer: DataTransfer
-}
-
-export type CaretInstruction =
-	| CaretIdInstruction
-	| CaretParentInstruction
-	| CaretTextInstruction
-
-export interface CaretIdInstruction {
-	type: "id"
-	// the id of the parent element to move to
-	id: string
-	// the index of the child in that parent element
-	index: number
-	// where the selection range should start
-	startOffset: number
-	// where the selection range should end
-	endOffset?: number
-}
-
-export interface CaretParentInstruction {
-	type: "parent"
-	// the parent element to move to
-	parent: MayoParentElement<any>
-	// the index of the child in that parent element
-	index: number
-	// where the selection range should start
-	startOffset: number
-	// where the selection range should end
-	endOffset?: number
-}
-
-export interface CaretTextInstruction {
-	type: "text"
-	// the parent element to move to
-	element: Text
-	// where the selection range should start
-	startOffset: number
-	// where the selection range should end
-	endOffset?: number
-}

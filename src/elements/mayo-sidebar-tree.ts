@@ -37,6 +37,10 @@ export default class MayoSidebarTreeElement extends LitElement {
 			.arrow {
 				color: black;
 			}
+
+			mayo-sidebar-file {
+				font-size: 0.8em;
+			}
 		`
 	}
 

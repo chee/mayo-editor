@@ -1,7 +1,8 @@
 import type * as md from "mdast"
 import type * as unist from "unist"
-import {split} from "../../ast/utils"
-import {CaretInstruction, MayoContentElement} from ".."
+import split from "../../ast/split"
+import {MayoContentElement} from ".."
+import {CaretInstruction} from "../../caret"
 export abstract class MayoElement<
 	AstNodeType extends unist.Node
 > extends HTMLElement {
@@ -139,28 +140,6 @@ export class MayoParentElement<
 		}
 
 		return caret
-		// TODO replace this with code that creates a code node when you press `
-		// let ticks = targetAstNode.value.match(/(\s)`([^`]+)`(\s)/)
-
-		// if (ticks) {
-		// 	let tickIndex = targetAstNode.value.indexOf(ticks[0])
-		// 	let prespace = ticks[1]
-		// 	let tickContent = ticks[2]
-
-		// 	let aftspace = ticks[3]
-		// 	this.node.children.splice(
-		// 		targetIndex,
-		// 		1,
-		// 		u("text", targetAstNode.value.slice(0, tickIndex) + prespace),
-		// 		u("inlineCode", {id: shortId()}, tickContent),
-		// 		u(
-		// 			"text",
-		// 			aftspace + targetAstNode.value.slice(tickIndex + ticks[0].length)
-		// 		)
-		// 	)
-		// } else {
-		// 	return caret
-		// }
 	}
 
 	insertTextAsCommonAncestor(
@@ -205,7 +184,7 @@ export class MayoParentElement<
 
 	insertParagraph(range: StaticRange) {}
 
-	selfDeleteContentBackward(range: StaticRange) {
+	selfDeleteContentBackward(range: StaticRange): CaretInstruction {
 		let targetTextNode = range.startContainer
 		let targetIndex = this.interestingChildren.indexOf(targetTextNode)
 		if (targetIndex == -1) {

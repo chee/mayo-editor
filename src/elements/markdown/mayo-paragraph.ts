@@ -1,7 +1,7 @@
 import {MayoParentElement} from "./mayo-element"
 import * as md from "mdast"
 import u from "unist-builder"
-import {CaretInstruction} from ".."
+import {CaretInstruction} from "../../caret"
 import shortid from "shortid"
 
 export default class MayoParagraphElement extends MayoParentElement<md.Paragraph> {

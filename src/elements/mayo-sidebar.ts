@@ -48,7 +48,7 @@ export default class MayoSidebarElement extends LitElement {
 					?root=${true}
 					?open=${false}
 					cwd=${this.cwd}
-					name=${basename(this.cwd)}
+					name=${this.cwd ? basename(this.cwd) : ""}
 				></mayo-sidebar-tree>
 			</nav>
 		`
