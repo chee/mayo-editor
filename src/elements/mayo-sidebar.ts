@@ -8,9 +8,11 @@ import {
 } from "lit-element"
 import {TemplateResult} from "lit-html"
 import {basename} from "path"
+import "./mayo-sidebar-file"
+import "./mayo-sidebar-tree"
 
 @customElement("mayo-sidebar")
-export default class MayoSidebarElement extends LitElement {
+class MayoSidebarElement extends LitElement {
 	@property()
 	cwd: string
 
@@ -54,3 +56,5 @@ export default class MayoSidebarElement extends LitElement {
 		`
 	}
 }
+
+export default MayoSidebarElement

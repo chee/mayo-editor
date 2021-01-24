@@ -1,63 +1,54 @@
-import parse from "mdast-util-from-markdown"
+import fromMarkdown from "mdast-util-from-markdown"
 import type * as md from "mdast"
-import BeforeInputEvent from "../before-input-event"
-import {CaretInstruction} from "../caret"
-import {html} from "lit-html"
+import BeforeInputEvent from "../events/before-input-event"
+import {html, TemplateResult} from "lit-html"
 // TODO learn how to declare types for this
 // @ts-ignore
 import compact from "mdast-util-compact"
 import toMarkdown from "mdast-util-to-markdown"
 import * as is from "../ast/is"
-import {css, CSSResult, customElement, LitElement, property} from "lit-element"
-import transform, {nothing} from "../ast/transform"
-import getTransformOptions from "../get-transform-options"
+import {customElement, LitElement, property} from "lit-element"
+import transform from "../ast/transform"
+import getTransformOptions, {
+	GetTransformOptionsOptions,
+} from "../dom/get-transform-options"
 import "./mayo-node"
-import MayoNodeElement from "./mayo-node"
-import {produce, enableAllPlugins} from "immer"
-import {spread} from "@open-wc/lit-helpers"
-import {spreadable} from "../ast/convert-to-html"
+import * as gfm from "mdast-util-gfm"
 
-enableAllPlugins()
+import type {Patch} from "immer"
+import {
+	produceWithPatches,
+	enableAllPlugins as enableAllOfImmer,
+	applyPatches,
+} from "immer"
+
+enableAllOfImmer()
+
+function parse(contents: string): md.Root {
+	let root = fromMarkdown(contents, {mdastExtensions: [gfm.fromMarkdown]})
+	// addParents(root)
+	return root
+}
+
+enum modifiers {
+	control = 1,
+	shift = 2,
+	super = 4,
+	option = 8,
+	hyper = 16,
+}
 
 @customElement("mayo-document")
-export default class MayoDocumentElement extends LitElement {
+class MayoDocumentElement extends LitElement {
 	@property()
 	contents: string
 	@property({type: Boolean})
 	dirty: boolean
 	node: md.Root
+	modifier: number
 
 	createRenderRoot(): this {
 		return this
-	}
-
-	static get styles(): CSSResult {
-		return css`
-			article {
-				white-space: pre-wrap;
-			}
-
-			article > * + * {
-				margin-top: 1em;
-			}
-
-			article {
-				width: 100%;
-				height: 100%;
-				font-size: 1.6em;
-				font-family: avenir next, sans-serif;
-				padding: 1em;
-				color: #000;
-				line-height: 1.2;
-				max-width: 80ex;
-				margin: auto;
-				margin-bottom: 2em;
-			}
-
-			article:focus {
-				outline: none;
-			}
-		`
 	}
 
 	attributeChangedCallback(name: string, before: string, now: string): void {
@@ -67,215 +58,156 @@ export default class MayoDocumentElement extends LitElement {
 		}
 	}
 
-	updateSelection(caret: CaretInstruction | null): void {
-		let selection = document.getSelection()
-		if (caret) {
-			let target: Text | null = null
-			if (caret && caret.type == "id") {
-				let parent = document.getElementById(
-					caret.elementId
-				) as MayoNodeElement
-			} else if (caret && caret.type == "parent") {
-				target = caret.parentElement.interestingChildren[
-					caret.textChildIndex
-				] as Text
-			} else if (caret && caret.type == "text") {
-				target = caret.element
-			}
-			if (target) {
-				selection.removeAllRanges()
-				let range = document.createRange()
-				range.setStart(target, caret ? caret.startOffset : 0)
-				selection.addRange(range)
-			}
-		}
+	// history
+	history: Patch[][] = []
+	// future of the history
+	futures: Patch[][] = []
+
+	historyIndex = 0
+
+	undo(): void {
+		this.node = applyPatches(this.node, this.history[this.historyIndex])
+		this.historyIndex += 1
+		this.requestUpdate()
 	}
 
-	async handleInput(event: BeforeInputEvent) {
-		event.preventDefault()
-		// TODO multiple ranges?
+	redo(): void {
+		this.node = applyPatches(this.node, this.futures[this.historyIndex])
+		this.historyIndex -= 1
+		this.requestUpdate()
+	}
 
-		let transformOptions = await getTransformOptions(event)
-		this.node = produce(this.node, draft => transform(draft, transformOptions))
+	async transform(options: GetTransformOptionsOptions): Promise<void> {
+		let transformOptions = await getTransformOptions(options)
+		let [node, patches, inversePatches] = produceWithPatches(
+			this.node,
+			draft => {
+				transform(draft, transformOptions)
+			}
+		)
+
+		this.node = node
+		// TODO better undo/redoo
+		this.history.splice(this.historyIndex, 0, inversePatches)
+		this.futures.splice(this.historyIndex, 0, patches)
+
 		this.setAttribute("dirty", "true")
 		await this.requestUpdate()
-		// await this.updateComplete
-		// this.placeCaret()
-		event.preventDefault()
-		return
-
-		// let startContainerElement = startElement.container
-		// 	? startElement
-		// 	: (startElement.closest("[container]")! as MayoParentElement<any>)
-
-		// let startBlockElement = startElement.block
-		// 	? startElement
-		// 	: (startElement.closest("[block]")! as MayoParentElement<any>)
-
-		// let endBlockElement = endElement.block
-		// 	? endElement
-		// 	: (endElement.closest("[block]")! as MayoParentElement<any>)
-
-		// // the index of the start element in the start block (x)
-		// let startElementIndex = 0
-		// if (startElement.inline) {
-		// 	startElementIndex = startBlockElement.interestingChildren.indexOf(
-		// 		startElement
-		// 	)
-		// } else if (startElement.block) {
-		// 	startElementIndex = startBlockElement.interestingChildren.indexOf(
-		// 		range.startContainer
-		// 	)
-		// }
-
-		// let endElementIndex = 0
-		// if (endElement.inline) {
-		// 	endElementIndex = endBlockElement.interestingChildren.indexOf(endElement)
-		// } else if (endElement.block) {
-		// 	endElementIndex = endBlockElement.interestingChildren.indexOf(
-		// 		range.endContainer
-		// 	)
-		// }
-		// switch (event.inputType) {
-		// 	case "insertReplacementText":
-		// 		event.dataTransfer.items[0].getAsString(text => {
-		// 			startElement.selfInsertText(text, range)
-		// 			this.setAttribute("dirty", "true")
-		// 		})
-		// 		break
-		// 	case "insertText": {
-		// 		let caret: CaretInstruction | null = null
-		// 		if (range.startContainer == range.endContainer) {
-		// 			caret = startElement.selfInsertText(event.data || "", range)
-		// 			event.preventDefault()
-		// 		} else if (startBlockElement == endBlockElement) {
-		// 			caret = (startBlockElement as MayoParentElement<any>).insertTextAsCommonAncestor(
-		// 				startElement,
-		// 				endElement,
-		// 				event.data || "",
-		// 				range
-		// 			)
-		// 		} else {
-		// 			// TODO this is a textInsert across blocks, sounds hard
-		// 		}
-
-		// 		this.setAttribute("dirty", "true")
-
-		// 		this.updateSelection(caret)
-		// 		break
-		// 	}
-		// 	case "insertLineBreak": {
-		// 		let index = startBlockElement.interestingChildren.indexOf(startElement)
-		// 		startBlockElement.node.children.splice(index + 1, 0, u("break"))
-		// 		this.setAttribute("dirty", "true")
-
-		// 		event.preventDefault()
-		// 		break
-		// 	}
-		// 	case "insertParagraph": {
-		// 		let id = shortId()
-		// 		if ("value" in startElement.node) {
-		// 			if (isTextOrInlineCode(startElement)) {
-		// 				insertParagraph(
-		// 					this.node,
-		// 					startElement.node,
-		// 					range.startOffset,
-		// 					id
-		// 				)
-		// 			}
-		// 		} else if (startElement == startBlockElement) {
-		// 			if (Array.isArray(startElement.node.children)) {
-		// 				insertParagraph(
-		// 					this.node,
-		// 					startElement.node.children[startElementIndex],
-		// 					range.startOffset,
-		// 					id
-		// 				)
-		// 			}
-		// 		} else {
-		// 			let idx = startElement.interestingChildren.indexOf(
-		// 				range.startContainer
-		// 			)
-		// 			if (Array.isArray(startElement.node.children)) {
-		// 				insertParagraph(
-		// 					this.node,
-		// 					startElement.node.children[idx],
-		// 					range.startOffset,
-		// 					id
-		// 				)
-		// 			}
-		// 		}
-
-		// 		this.setAttribute("dirty", "true")
-
-		// 		this.updateSelection({
-		// 			type: "id" as const,
-		// 			elementId: id,
-		// 			textChildIndex: 0,
-		// 			startOffset: 0,
-		// 		})
-		// 		break
-		// 	}
-		// 	case "deleteContentBackward": {
-		// 		if (startElement.node.type == "paragraph") {
-		// 			startElement = startElement as MayoParagraphElement
-
-		// 			if (startElement.atBeginningOfBlock(range)) {
-		// 				backspaceParagraph(this.node, startElement.node)
-		// 			}
-		// 		} else if (startElement != startBlockElement) {
-		// 			if (is.container(startElement.node.type)) {
-		// 				// go through the children and move the top-level text nodes out into the parent
-		// 				let indexOfTextNode = startElement.interestingChildren.indexOf(
-		// 					range.startContainer
-		// 				)
-		// 				if (Array.isArray(startElement.node.children)) {
-		// 					let textNode = startElement.node.children[indexOfTextNode]
-		// 				}
-		// 			} else if (typeof startElement.node.value == "string") {
-		// 				if (range.startOffset == startElement.node.value.length - 1) {
-		// 					startElement.node.type = "text"
-
-		// 					// TODO fix caret position
-		// 					// this.updateSelection()
-		// 					event.preventDefault()
-		// 				}
-		// 			}
-		// 		}
-
-		// 		let caret = startElement.selfDeleteContentBackward(range)
-
-		// 		this.setAttribute("dirty", "true")
-
-		// 		if (caret) {
-		// 			this.updateSelection(caret)
-		// 		}
-		// 		break
-		// 	}
-		// }
-
-		// event.preventDefault()
-		//this.updateForTransform(event)
 	}
 
-	updateForTransform(caret: CaretInstruction) {
-		this.setAttribute("dirty", "true")
-		this.updateSelection(caret)
-	}
+	async handleInput(event: BeforeInputEvent): Promise<void> {
+		let metaBindings = {
+			s: this.save,
+			"[": () => {
+				this.transform({
+					inputType: "formatOutdent",
+					range: event.getTargetRanges()[0],
+				})
+			},
+			"]": () => {
+				this.transform({
+					inputType: "formatIndent",
+					range: event.getTargetRanges()[0],
+				})
+			},
+		}
 
-	handleKeydown(event: KeyboardEvent) {
-		if (event.key == "s" && (event.ctrlKey || event.metaKey)) {
-			this.save()
+		if (
+			this.modifier & modifiers.super &&
+			event.inputType == "insertText" &&
+			Object.keys(metaBindings).includes(event.data)
+		) {
 			event.preventDefault()
+			// @ts-ignore
+			metaBindings[event.data]()
+			return
+		}
+
+		event.preventDefault()
+		await this.transform({
+			inputType: event.inputType,
+			range: event.getTargetRanges()[0],
+			data: event.data,
+			dataTransfer: event.dataTransfer,
+		})
+
+		return
+	}
+
+	// this is messed up, but
+	handleKeydown(event: KeyboardEvent): void {
+		switch (event.key) {
+			case "Meta":
+				this.modifier |= modifiers.super
+				break
+			case "Alt":
+				this.modifier |= modifiers.option
+				break
+			case "Hyper":
+				this.modifier |= modifiers.hyper
+				break
+			case "Control":
+				this.modifier |= modifiers.control
+				break
+			case "Shift":
+				this.modifier |= modifiers.shift
 		}
 	}
 
-	save() {
-		this.contents = toMarkdown(compact(this.node))
+	handleKeyup(event: KeyboardEvent): void {
+		switch (event.key) {
+			case "Meta":
+				this.modifier ^= modifiers.super
+				break
+			case "Alt":
+				this.modifier ^= modifiers.option
+				break
+			case "Hyper":
+				this.modifier ^= modifiers.hyper
+				break
+			case "Control":
+				this.modifier ^= modifiers.control
+				break
+			case "Shift":
+				this.modifier ^= modifiers.shift
+		}
+	}
+
+	getCurrentRange(): StaticRange {
+		let {
+			startContainer,
+			startOffset,
+			endContainer,
+			endOffset,
+		} = document.getSelection().getRangeAt(0).cloneRange()
+
+		return {
+			collapsed: startContainer == endContainer && startOffset == endOffset,
+			startContainer: startContainer,
+			startOffset: startOffset,
+			endContainer: endContainer,
+			endOffset: endOffset,
+		}
+	}
+
+	save(): void {
+		this.contents = toMarkdown(compact(this.node), {
+			bullet: "-",
+			fence: "`",
+			emphasis: "_",
+			strong: "*",
+			rule: "*",
+			setext: false,
+			fences: true,
+			listItemIndent: "tab",
+			incrementListMarker: true,
+			quote: '"',
+			extensions: [gfm.toMarkdown()],
+		})
 		this.dispatchEvent(new CustomEvent("save"))
 	}
 
-	render() {
+	render(): TemplateResult {
 		return html`<article
 			type="root"
 			?block=${true}
@@ -291,14 +223,14 @@ export default class MayoDocumentElement extends LitElement {
 							.node=${child}
 							index=${index}
 							type=${child.type}
-							...=${spread(spreadable(child))}
-							?container=${is.container(child.type)}
-							?empty=${is.empty(child.type)}
-							?inline=${is.inline(child.type)}
-							?leaf=${is.leaf(child.type)}
-							?list=${is.list(child.type)}
-							?block=${is.block(child.type)}
+							?container=${is.container(child)}
+							?empty=${is.empty(child)}
+							?inline=${is.inline(child)}
+							?leaf=${is.leaf(child)}
+							?list=${is.list(child)}
+							?block=${is.block(child)}
 						></mayo-node>`
+						// eslint-disable-next-line no-mixed-spaces-and-tabs
 				  })
 				: ""}
 		</article>`
@@ -307,10 +239,9 @@ export default class MayoDocumentElement extends LitElement {
 	constructor() {
 		super()
 		this.addEventListener("keydown", this.handleKeydown)
+		this.addEventListener("keyup", this.handleKeyup)
 		this.addEventListener("beforeinput", this.handleInput)
 	}
-
-	connectedCallback() {
-		super.connectedCallback()
-	}
 }
+
+export default MayoDocumentElement

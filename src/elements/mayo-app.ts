@@ -1,8 +1,3 @@
-import type {
-	MayoDocumentElement,
-	MayoSidebarElement,
-	MayoSidebarTreeElement,
-} from "."
 import {promises as fs} from "fs"
 import path from "path"
 import {
@@ -15,6 +10,13 @@ import {
 } from "lit-element"
 import {html, TemplateResult} from "lit-html"
 import defaultDoc from "../default-doc"
+import MayoSidebarElement from "./mayo-sidebar"
+import MayoSidebarTreeElement from "./mayo-sidebar-tree"
+import MayoDocumentElement from "./mayo-document"
+
+import "./mayo-document"
+import "./mayo-sidebar"
+
 export interface GetFilesEvent extends CustomEvent {
 	detail: {
 		target: MayoSidebarTreeElement
@@ -58,6 +60,7 @@ export default class MayoAppElement extends LitElement {
 			mayo-document[dirty] {
 				border-left: 20px solid #ff2a50;
 			}
+
 			* {
 				box-sizing: border-box;
 			}
@@ -255,6 +258,11 @@ export default class MayoAppElement extends LitElement {
 				border-left: 5px solid #3399ff;
 				padding-left: 5px;
 			}
+			mayo-link {
+				color: #3399ff;
+				text-decoration: underline;
+				cursor: normal;
+			}
 		`
 	}
 
@@ -298,10 +306,10 @@ export default class MayoAppElement extends LitElement {
 				@open-file=${this.openFile}
 			></mayo-sidebar>
 			<mayo-document
+				contenteditable
 				role="main"
 				@save=${this.saveFile}
 				contents=${this.currentFileContents}
-				contenteditable
 			></mayo-document>
 		`
 	}

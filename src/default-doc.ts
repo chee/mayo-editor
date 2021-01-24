@@ -1,7 +1,8 @@
-export default `# hello \`this\` and _that_ (and \`others\`)
+import compact from "mdast-util-compact"
 
-this is an _ordinary **\`document\` about** ordinary_ things, there's **nothing _going_ on**
-here of _interest to you_, or me, or anybody else.
+export default compact(`# hello \`this\` and _that_ (and \`others\`)
+
+this is an _ordinary **\`document\` about** ordinary_ things, there's **nothing _going_ on** here of _interest to you_, or me, or anybody else.
 
 
 ## a list
@@ -32,4 +33,4 @@ auto sum(std::vector<int> nums) {
 	return result;
 }
 \`\`\`
-`
+`)

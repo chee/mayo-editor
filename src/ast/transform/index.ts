@@ -1,13 +1,17 @@
 import * as md from "mdast"
-import {CaretIdInstruction} from "../caret"
-import BeforeInputEvent, {InputType} from "../before-input-event"
+import {InputType} from "../../events/before-input-event"
 import insertText from "./insert-text"
+import insertParagraph from "./insert-paragraph"
 import visit from "unist-util-visit"
 import type * as unist from "unist"
-import {produce} from "immer"
+import {DataCaret} from "../../caret"
+import deleteContentBackward from "./delete-content-backward"
+import * as is from "../is"
+import visitParents from "unist-util-visit-parents"
+import {Data} from "electron/main"
 
 export interface TransformOptions {
-	data: string
+	detail: string | md.Root | md.Content
 	inputType: InputType
 	start: {
 		path: string
@@ -19,198 +23,190 @@ export interface TransformOptions {
 	}
 }
 
-export let nothing = Symbol("@transform/don't-actually")
-
-type TransformResult = CaretIdInstruction | typeof nothing
-
 interface TransformHandlers {
 	[key: string]: TransformHandler
 }
 
+export let nothing = Symbol("@transform/don't-actually")
+
 export interface TransformHandler {
-	(root: md.Root, options: TransformHandlerOptions): TransformResult
+	(root: md.Root, options: TransformHandlerOptions): void | typeof nothing
+}
+
+function restoreCaret(options: TransformHandlerOptions): void {
+	if (!options.start.node.data?.caret) {
+		let caret: Partial<DataCaret> = {}
+		options.start.node.data = {caret}
+	}
+	if (!options.end.node.data?.caret) {
+		let caret: Partial<DataCaret> = {}
+		options.end.node.data = {caret}
+	}
+	let startCaret: Partial<DataCaret> = options.start.node.data.caret
+	startCaret.caretStart = options.start.offset
+	let endCaret: Partial<DataCaret> = options.end.node.data.caret
+	endCaret.caretEnd = options.end.offset
 }
 
 export let handlers: TransformHandlers = {
 	insertReplacementText(root, options) {
-		console.error(`unhandled inputType`)
-		return nothing
+		if (typeof options.start.node.value == "string") {
+			options.end.offset = options.start.offset = options.data.length
+		}
+		options.start.node.value = options.data
+		let caret: DataCaret = {
+			caretStart: options.data.length,
+			caretEnd: options.data.length,
+		}
+		options.start.node.data = {
+			caret,
+		}
 	},
 	insertText,
 	insertLineBreak(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
-	insertParagraph(root, options) {
-		console.error(`unhandled inputType`)
-		return nothing
-	},
-	deleteContentBackward(root, options) {
-		console.error(`unhandled inputType`)
-		return nothing
-	},
+	insertParagraph,
+	deleteContentBackward,
 	deleteContentForward(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteByCut(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertOrderedList(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertUnorderedList(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertHorizontalRule(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertFromYank(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertFromDrop(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertFromPaste(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertFromPasteAsQuotation(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertTranspose(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertCompositionText(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	insertLink(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteWordBackward(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteWordForward(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteSoftLineBackward(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteSoftLineForward(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteEntireSoftLine(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteHardLineBackward(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteHardLineForward(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteByDrag(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	deleteContent(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	historyUndo(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	historyRedo(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatBold(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatItalic(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatUnderline(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatStrikeThrough(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatSuperscript(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatSubscript(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatJustifyFull(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatJustifyCenter(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatJustifyRight(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatJustifyLeft(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatIndent(root, options) {
-		console.error(`unhandled inputType`)
+		// TODO lists
+		visitParents(root, options.start.node, (node, parents) => {
+			for (let p of parents) {
+				if (p.type == "heading") {
+					if (p.depth < 6) p.depth += 1
+					restoreCaret(options)
+				}
+			}
+		})
 		return nothing
 	},
 	formatOutdent(root, options) {
-		console.error(`unhandled inputType`)
+		// TODO lists
+		visitParents(root, options.start.node, (node, parents) => {
+			for (let p of parents) {
+				if (p.type == "heading") {
+					if (p.depth > 1) p.depth -= 1
+					restoreCaret(options)
+				}
+			}
+		})
 		return nothing
 	},
 	formatRemove(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatSetBlockTextDirection(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatSetInlineTextDirection(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatBackColor(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatFontColor(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 	formatFontName(root, options) {
-		console.error(`unhandled inputType`)
 		return nothing
 	},
 }
@@ -218,13 +214,31 @@ export let handlers: TransformHandlers = {
 export interface TransformHandlerOptions {
 	data: string
 	start: {
-		node: md.Content
+		node: unist.Node
 		offset: number
 	}
 	end: {
-		node: md.Content
+		node: unist.Node
 		offset: number
 	}
+}
+
+function getFromPath(root: md.Root, path: string): md.Text | md.InlineCode {
+	let parts = path.slice(1).split(".").map(Number)
+	let node: unist.Node = root
+	while (parts.length) {
+		if (!Array.isArray(node.children)) {
+			throw new TypeError("no chilcren")
+		}
+		let idx = parts.shift()
+		node = node.children[idx]
+	}
+	if (node.type != "text" && node.type != "inlineCode") {
+		throw new Error(
+			`path must lead to text or inline code, led to: ${node.type}`
+		)
+	}
+	return node as md.Text | md.InlineCode
 }
 
 export default function transform(
@@ -246,9 +260,7 @@ export default function transform(
 	})
 
 	let startParts = options.start.path.slice(1).split(".").map(Number)
-	console.log(startParts)
 	let startNode: unist.Node = root
-
 	while (startParts.length) {
 		if (!Array.isArray(startNode.children)) {
 			throw new TypeError("no chilcren")
@@ -256,6 +268,7 @@ export default function transform(
 		let idx = startParts.shift()
 		startNode = startNode.children[idx]
 	}
+
 	let endParts = options.end.path.slice(1).split(".").map(Number)
 	let endNode: unist.Node = root
 	while (endParts.length) {
@@ -265,17 +278,19 @@ export default function transform(
 		endNode = endNode.children[endParts.shift()]
 	}
 
-	let opts = {
-		data: options.data,
+	let handlerOptions = {
+		data: options.detail,
 		start: {
-			node: startNode as md.Content,
+			node: startNode as md.Text | md.InlineCode,
 			offset: options.start.offset,
 		},
 		end: {
-			node: endNode as md.Content,
+			node: endNode as md.Text | md.InlineCode,
 			offset: options.end.offset,
 		},
 	}
 
-	handler(root, opts)
+	if (handler(root, handlerOptions) == nothing) {
+		console.error(`unhandled inputType: ${options.inputType}`)
+	}
 }

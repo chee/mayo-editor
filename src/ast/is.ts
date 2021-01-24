@@ -1,3 +1,14 @@
+import * as md from "mdast"
+
+export type MarkdownLeafBlock =
+	| md.ThematicBreak
+	| md.Heading
+	| md.Code
+	| md.HTML
+	| md.LinkReference
+	| md.Paragraph
+	| md.Break
+
 let leafBlock = [
 	"thematicBreak",
 	"heading",
@@ -8,6 +19,14 @@ let leafBlock = [
 	"break",
 ]
 
+export type MarkdownEmpty =
+	| md.Break
+	| md.ThematicBreak
+	| md.Link
+	| md.LinkReference
+	| md.Image
+	| md.ImageReference
+
 let empties = [
 	"break",
 	"thematicBreak",
@@ -17,40 +36,68 @@ let empties = [
 	"imageReference",
 ]
 
-let leafInline = ["inlineCode"]
+export type MarkdownLeafInline = md.InlineCode | md.Text
+
+let leafInline = ["inlineCode", "text"]
+
+export type MarkdownContainerBlock = md.Blockquote | md.ListItem | md.List
 
 let containerBlock = ["blockquote", "listItem", "list"]
 
+export type MarkdownContainerInline = md.Delete | md.Emphasis | md.Strong
+
 let containerInline = ["delete", "emphasis", "strong"]
+
+export type MarkdownInline = MarkdownLeafInline | MarkdownContainerInline
 
 let inlines = [...leafInline, ...containerInline]
 
-let leaves = [...leafBlock]
+export type MarkdownLeaf = MarkdownLeafBlock | MarkdownLeafInline
+
+let leaves = [...leafBlock, ...leafInline]
+
+export type MarkdownBlock = MarkdownLeafBlock | MarkdownContainerBlock
 
 let blocks = [...leafBlock, ...containerBlock]
 
-let containers = [...containerBlock, "root"]
+export type MarkdownContainer =
+	| MarkdownContainerBlock
+	| MarkdownContainerInline
+	| md.Root
 
-export function empty(type: string): boolean {
-	return empties.includes(type)
+let containers = [...containerInline, ...containerBlock, "root"]
+
+import type * as unist from "unist"
+import {Unwrappable} from "./unwrap"
+
+export function empty(node: unist.Node): node is MarkdownEmpty {
+	return empties.includes(node.type)
 }
 
-export function leaf(type: string): boolean {
-	return leaves.includes(type)
+export function leaf(node: unist.Node): node is MarkdownLeaf {
+	return leaves.includes(node.type)
 }
 
-export function inline(type: string): boolean {
-	return inlines.includes(type)
+export function inline(node: unist.Node): node is MarkdownInline {
+	return inlines.includes(node.type)
 }
 
-export function container(type: string): boolean {
-	return containers.includes(type)
+export function container(node: unist.Node): node is MarkdownContainer {
+	return containers.includes(node.type)
 }
 
-export function block(type: string): boolean {
-	return blocks.includes(type)
+export function block(node: unist.Node): node is MarkdownBlock {
+	return blocks.includes(node.type)
 }
 
-export function list(type: string): boolean {
-	return type == "list"
+export function list(node: unist.Node): node is md.List {
+	return node.type == "list"
+}
+
+export function textish(node: unist.Node): node is md.Text | md.InlineCode {
+	return node.type == "text" || node.type == "inlineCode"
+}
+
+export function unwrappable(node: unist.Node): node is Unwrappable {
+	return ["emphasis", "delete", "strong", "inlineCode"].includes(node.type)
 }

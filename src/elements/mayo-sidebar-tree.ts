@@ -11,7 +11,7 @@ import type {GetFilesEvent} from "./mayo-app"
 import path from "path"
 
 @customElement("mayo-sidebar-tree")
-export default class MayoSidebarTreeElement extends LitElement {
+class MayoSidebarTreeElement extends LitElement {
 	@property({type: Boolean})
 	open: boolean
 	@property({attribute: false})
@@ -108,3 +108,5 @@ export default class MayoSidebarTreeElement extends LitElement {
 		}
 	}
 }
+
+export default MayoSidebarTreeElement

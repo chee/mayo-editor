@@ -26,7 +26,7 @@
   },
   "include": [
     "src/**/*",
-    "tests/transform/insert-paragraph.test.ts",
+    "tests/insert-paragraph.test.ts",
     "tests/transform/split.test.ts"
   ]
 }

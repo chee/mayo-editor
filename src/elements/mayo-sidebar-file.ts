@@ -10,7 +10,7 @@ import {TemplateResult} from "lit-html"
 import type {OpenFileEvent} from "./mayo-app"
 
 @customElement("mayo-sidebar-file")
-export default class MayoSidebarFileElement extends LitElement {
+class MayoSidebarFileElement extends LitElement {
 	@property()
 	name: string
 	@property()
@@ -69,3 +69,5 @@ export default class MayoSidebarFileElement extends LitElement {
 		}
 	}
 }
+
+export default MayoSidebarFileElement

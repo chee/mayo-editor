@@ -1,11 +1,39 @@
 import {customElement, LitElement, property} from "lit-element"
-import {html, render, TemplateResult} from "lit-html"
+import {html, TemplateResult} from "lit-html"
 import * as md from "mdast"
-import * as unist from "unist"
 import * as is from "../ast/is"
-import {spread} from "@open-wc/lit-helpers"
-import {spreadable} from "../ast/convert-to-html"
-import {repeat} from "lit-html/directives/repeat"
+import {ifDefined} from "lit-html/directives/if-defined"
+
+interface Info {
+	leaf?: true
+	block?: true
+	inline?: true
+	container?: true
+	empty?: true
+	caretStart?: number
+	caretEnd?: number
+}
+
+export function info(node: md.Content | md.Root): Info {
+	let info: Info = {}
+	if (is.leaf(node)) {
+		info.leaf = true
+	}
+	if (is.block(node)) {
+		info.block = true
+	}
+	if (is.inline(node)) {
+		info.inline = true
+	}
+	if (is.container(node)) {
+		info.container = true
+	}
+	if (is.empty(node)) {
+		info.empty = true
+	}
+
+	return info
+}
 
 @customElement("mayo-node")
 class MayoNodeElement extends LitElement {
@@ -31,10 +59,10 @@ class MayoNodeElement extends LitElement {
 	block: boolean
 	@property()
 	value: string
-	@property()
-	caret: string
-	@property({type: Number})
-	caretoffset: number
+	@property({type: Number, attribute: "caret-start"})
+	caretStart?: number
+	@property({type: Number, attribute: "caret-end"})
+	caretEnd?: number
 	@property()
 	path: string
 
@@ -61,22 +89,22 @@ class MayoNodeElement extends LitElement {
 			return html``
 		}
 		return html`${this.node.children.map((child, index) => {
-			let caret = child.data?.caret?.type
-			let offset = child.data?.caret?.offset
+			let caret = child.data?.caret
 			return html`<mayo-node
+				...=${info(child)}
+				caret-start=${ifDefined(caret?.caretStart)}
+				caret-end=${ifDefined(caret?.caretEnd)}
 				path="${this.path}.${index}"
 				.node=${child}
 				type=${child.type}
 				index=${index}
 				value=${child.value}
-				?container=${is.container(child.type)}
-				?empty=${is.empty(child.type)}
-				?inline=${is.inline(child.type)}
-				?leaf=${is.leaf(child.type)}
-				?list=${is.list(child.type)}
-				?block=${is.block(child.type)}
-				caret=${caret ? caret : ""}
-				caretoffset=${offset ? offset : ""}
+				?container=${is.container(child)}
+				?empty=${is.empty(child)}
+				?inline=${is.inline(child)}
+				?leaf=${is.leaf(child)}
+				?list=${is.list(child)}
+				?block=${is.block(child)}
 			></mayo-node>`
 		})}`
 	}
@@ -174,21 +202,26 @@ class MayoNodeElement extends LitElement {
 			return html`<code>${this.node.value}</code>`
 		} else if (this.node.type == "text") {
 			return html`${this.node.value}`
+		} else {
+			console.error(`unhandled node type: ${this.node.type}`)
 		}
 	}
 
-	updated(props: Map<string, unknown>) {
-		if (this.caret) {
-			console.log(this.caret, this.caretoffset)
+	updated(): void {
+		if (this.caretStart != null || this.caretEnd != null) {
+			if (!this.textNode) {
+				return console.error(`no text node in ${this.tagName}`)
+			}
 			let selection = document.getSelection()
 			let range = document.createRange()
 
 			selection.removeAllRanges()
-			if (this.caret == "collapsed" || this.caret == "start") {
-				range.setStart(this.textNode, this.caretoffset)
+
+			if (this.caretStart != null) {
+				range.setStart(this.textNode, this.caretStart)
 			}
-			if (this.caret == "collapsed" || this.caret == "end") {
-				range.setEnd(this.textNode, this.caretoffset)
+			if (this.caretEnd != null) {
+				range.setEnd(this.textNode, this.caretEnd)
 			}
 
 			selection.addRange(range)

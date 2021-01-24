@@ -25,13 +25,13 @@ export default function split(
 			let idx = highParent.children.indexOf(lowParent)
 			let pc = highParent.children.slice(0, idx)
 			let ac = highParent.children.slice(idx + 1)
-			if (is.inline(lowParent.type)) {
+			if (is.inline(lowParent)) {
 				leftNode = u(lowParent.type, [...nextpc, leftNode])
 				rightNode = u(lowParent.type, [rightNode, ...nextac])
 			}
 			nextpc = pc
 			nextac = ac
-			if (is.block(lowParent.type)) {
+			if (is.block(lowParent)) {
 				break
 			}
 		}
