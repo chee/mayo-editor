@@ -43,6 +43,9 @@ export default class MayoAppElement extends LitElement {
 
 	static get styles(): CSSResult {
 		return css`
+			::selection {
+				background: #7700ff;
+			}
 			mayo-sidebar {
 				height: 100vh;
 				overflow: hidden;

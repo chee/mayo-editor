@@ -98,6 +98,14 @@ export function textish(node: unist.Node): node is md.Text | md.InlineCode {
 	return node.type == "text" || node.type == "inlineCode"
 }
 
+export function text(node: unist.Node): node is md.Text {
+	return node.type == "text"
+}
+
+export function inlineCode(node: unist.Node): node is md.InlineCode {
+	return node.type == "inlineCode"
+}
+
 export function unwrappable(node: unist.Node): node is Unwrappable {
 	return ["emphasis", "delete", "strong", "inlineCode"].includes(node.type)
 }

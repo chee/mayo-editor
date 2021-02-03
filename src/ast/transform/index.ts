@@ -8,20 +8,6 @@ import {DataCaret} from "../../caret"
 import deleteContentBackward from "./delete-content-backward"
 import * as is from "../is"
 import visitParents from "unist-util-visit-parents"
-import {Data} from "electron/main"
-
-export interface TransformOptions {
-	detail: string | md.Root | md.Content
-	inputType: InputType
-	start: {
-		path: string
-		offset: number
-	}
-	end: {
-		path: string
-		offset: number
-	}
-}
 
 interface TransformHandlers {
 	[key: string]: TransformHandler
@@ -51,12 +37,12 @@ function restoreCaret(options: TransformHandlerOptions): void {
 export let handlers: TransformHandlers = {
 	insertReplacementText(root, options) {
 		if (typeof options.start.node.value == "string") {
-			options.end.offset = options.start.offset = options.data.length
+			options.end.offset = options.start.offset = options.detail.length
 		}
-		options.start.node.value = options.data
+		options.start.node.value = options.detail
 		let caret: DataCaret = {
-			caretStart: options.data.length,
-			caretEnd: options.data.length,
+			caretStart: options.detail.length,
+			caretEnd: options.detail.length,
 		}
 		options.start.node.data = {
 			caret,
@@ -211,8 +197,23 @@ export let handlers: TransformHandlers = {
 	},
 }
 
+export interface TransformOptions {
+	detail: string | md.Root | md.Content
+	flags: Record<string, boolean>
+	inputType: InputType
+	start: {
+		path: string
+		offset: number
+	}
+	end: {
+		path: string
+		offset: number
+	}
+}
+
 export interface TransformHandlerOptions {
-	data: string
+	detail: string | md.Root | md.Content
+	flags: Record<string, boolean>
 	start: {
 		node: unist.Node
 		offset: number
@@ -223,7 +224,7 @@ export interface TransformHandlerOptions {
 	}
 }
 
-function getFromPath(root: md.Root, path: string): md.Text | md.InlineCode {
+function getNodeFromPath(root: md.Root, path: string): unist.Node {
 	let parts = path.slice(1).split(".").map(Number)
 	let node: unist.Node = root
 	while (parts.length) {
@@ -238,7 +239,7 @@ function getFromPath(root: md.Root, path: string): md.Text | md.InlineCode {
 			`path must lead to text or inline code, led to: ${node.type}`
 		)
 	}
-	return node as md.Text | md.InlineCode
+	return node
 }
 
 export default function transform(
@@ -259,33 +260,18 @@ export default function transform(
 		}
 	})
 
-	let startParts = options.start.path.slice(1).split(".").map(Number)
-	let startNode: unist.Node = root
-	while (startParts.length) {
-		if (!Array.isArray(startNode.children)) {
-			throw new TypeError("no chilcren")
-		}
-		let idx = startParts.shift()
-		startNode = startNode.children[idx]
-	}
+	let startNode = getNodeFromPath(root, options.start.path)
+	let endNode = getNodeFromPath(root, options.end.path)
 
-	let endParts = options.end.path.slice(1).split(".").map(Number)
-	let endNode: unist.Node = root
-	while (endParts.length) {
-		if (!Array.isArray(endNode.children)) {
-			throw new TypeError("no chilcren")
-		}
-		endNode = endNode.children[endParts.shift()]
-	}
-
-	let handlerOptions = {
-		data: options.detail,
+	let handlerOptions: TransformHandlerOptions = {
+		detail: options.detail,
+		flags: options.flags,
 		start: {
-			node: startNode as md.Text | md.InlineCode,
+			node: startNode,
 			offset: options.start.offset,
 		},
 		end: {
-			node: endNode as md.Text | md.InlineCode,
+			node: endNode,
 			offset: options.end.offset,
 		},
 	}

@@ -8,6 +8,7 @@ import unwrap from "../unwrap"
 let deleteContentBackward: TransformHandler = (root, options) => {
 	let startNode = options.start.node
 	let endNode = options.end.node
+
 	if (is.leaf(startNode) && is.inline(startNode) && is.block(endNode)) {
 		backspaceParagraph(root, (endNode as unknown) as md.Paragraph)
 		return
@@ -20,13 +21,15 @@ let deleteContentBackward: TransformHandler = (root, options) => {
 			let directParent = parents[parents.length - 1]
 
 			if (is.textish(endNode)) {
-				if (options.end.offset == endNode.value.length) {
-					if (is.unwrappable(endNode)) {
-						unwrap(root, endNode)
-						return
-					} else if (is.unwrappable(directParent)) {
-						unwrap(root, directParent)
-						return
+				if (options.flags.unwrap !== false) {
+					if (options.end.offset == endNode.value.length) {
+						if (is.unwrappable(endNode)) {
+							unwrap(root, endNode)
+							return
+						} else if (is.unwrappable(directParent)) {
+							unwrap(root, directParent)
+							return
+						}
 					}
 				}
 			}

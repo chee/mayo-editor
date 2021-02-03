@@ -97,17 +97,19 @@ class MayoDocumentElement extends LitElement {
 
 	async handleInput(event: BeforeInputEvent): Promise<void> {
 		let metaBindings = {
-			s: this.save,
+			s: this.save.bind(this),
 			"[": () => {
 				this.transform({
 					inputType: "formatOutdent",
 					range: event.getTargetRanges()[0],
+					flags: {},
 				})
 			},
 			"]": () => {
 				this.transform({
 					inputType: "formatIndent",
 					range: event.getTargetRanges()[0],
+					flags: {},
 				})
 			},
 		}
@@ -124,11 +126,19 @@ class MayoDocumentElement extends LitElement {
 		}
 
 		event.preventDefault()
+		let flags: Record<string, boolean> = {}
+		if (
+			event.inputType == "deleteContentForward" ||
+			event.inputType == "deleteContentBackward"
+		) {
+			flags.unwrap = Boolean(this.modifier & modifiers.shift)
+		}
 		await this.transform({
 			inputType: event.inputType,
 			range: event.getTargetRanges()[0],
 			data: event.data,
 			dataTransfer: event.dataTransfer,
+			flags,
 		})
 
 		return

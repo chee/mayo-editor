@@ -24,7 +24,7 @@ export default function insertParagraph(
 		let [node] = t
 		if (node.value.length == 0) {
 			node.type = "text"
-			node.value = ""
+			node.value = " "
 		}
 	}
 	let caret: DataCaret = {

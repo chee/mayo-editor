@@ -14,7 +14,7 @@ describe(insertText, () => {
 			},
 		}
 		insertText(tree, {
-			data: "!",
+			detail: "!",
 			start: {
 				node: select("text", tree),
 				offset: 5,
@@ -37,7 +37,7 @@ describe(insertText, () => {
 			},
 		}
 		insertText(tree, {
-			data: "-",
+			detail: "-",
 			start: {
 				node: select("inlineCode", tree),
 				offset: 2,
@@ -60,7 +60,7 @@ describe(insertText, () => {
 			},
 		}
 		insertText(tree, {
-			data: "i",
+			detail: "i",
 
 			start: {
 				node: selectAll<md.Text>("text", tree)[2],
@@ -84,7 +84,7 @@ describe(insertText, () => {
 			},
 		}
 		insertText(tree, {
-			data: "h",
+			detail: "h",
 
 			start: {
 				node: selectAll<md.Text>("text", tree)[1],
@@ -108,7 +108,7 @@ describe(insertText, () => {
 			},
 		}
 		insertText(tree, {
-			data: "-",
+			detail: "-",
 			start: {
 				node: selectAll<md.Text>("text", tree)[1],
 				offset: 2,

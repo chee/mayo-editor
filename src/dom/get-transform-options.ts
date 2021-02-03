@@ -10,6 +10,7 @@ export interface GetTransformOptionsOptions {
 	range: StaticRange
 	data?: string
 	dataTransfer?: DataTransfer
+	flags: Record<string, any>
 }
 
 export default async function getTransformOptions({
@@ -17,6 +18,7 @@ export default async function getTransformOptions({
 	range,
 	data,
 	dataTransfer,
+	flags,
 }: GetTransformOptionsOptions): Promise<TransformOptions> {
 	let start = range.startContainer.parentElement as MayoNodeElement
 	let end = range.endContainer.parentElement as MayoNodeElement
@@ -67,5 +69,6 @@ export default async function getTransformOptions({
 			offset: range.endOffset,
 		},
 		inputType: inputType,
+		flags,
 	}
 }
