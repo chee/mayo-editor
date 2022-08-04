@@ -1,7 +1,7 @@
 {
   "name": "mayo-editor",
   "productName": "mayo",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "a markdown text editor for large rabbits",
   "main": ".webpack/main",
   "scripts": {
